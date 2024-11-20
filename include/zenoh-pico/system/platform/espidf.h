@@ -47,20 +47,20 @@ typedef pthread_mutex_t _z_mutex_t;
 typedef pthread_cond_t _z_condvar_t;
 #endif  // Z_FEATURE_MULTI_THREAD == 1
 
-typedef struct timespec z_clock_t;
-typedef struct timeval z_time_t;
+
+// from threadx/utility/rtos_compatibility_layers/posix/time.h
+typedef unsigned long time_t;
+typedef struct {
+    time_t tv_sec;
+    unsigned long tv_nsec;
+} z_clock_t;
+typedef struct time_t z_time_t;
 
 typedef struct {
     union {
 #if Z_FEATURE_LINK_TCP == 1 || Z_FEATURE_LINK_UDP_MULTICAST == 1 || Z_FEATURE_LINK_UDP_UNICAST == 1
         int _fd;
-#endif
-#if Z_FEATURE_LINK_SERIAL == 1
-        struct {
-            uart_port_t _serial;
-            uint8_t *before_cobs;
-            uint8_t *after_cobs;
-        };
+        // TODO find the netx-duo socket type
 #endif
     };
 } _z_sys_net_socket_t;
