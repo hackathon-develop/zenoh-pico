@@ -29,7 +29,7 @@ if FRAMEWORK == 'zephyr':
                   "-<system/mbed/>",
                   "-<system/unix/>",
                   "-<system/flipper/>",
-                  "-<system/threadx/>",
+                  "-<system/threadx_plus_netxduo/>",
                   "-<system/windows/>"]
     CPPDEFINES = ["ZENOH_ZEPHYR"]
 
@@ -47,7 +47,7 @@ elif FRAMEWORK == 'arduino':
                       "-<system/unix/>",
                       "-<system/flipper/>",
                       "-<system/windows/>",
-                      "-<system/threadx/>", 
+                      "-<system/threadx_plus_netxduo/>", 
                       "-<system/zephyr/>"]
         CPPDEFINES = ["ZENOH_ARDUINO_ESP32", "ZENOH_C_STANDARD=99"]
     if PLATFORM == 'ststm32':
@@ -64,7 +64,7 @@ elif FRAMEWORK == 'arduino':
                           "-<system/unix/>",
                           "-<system/flipper/>",
                           "-<system/windows/>",
-                          "-<system/threadx/>",
+                          "-<system/threadx_plus_netxduo/>",
                           "-<system/zephyr/>"]
             CPPDEFINES = ["ZENOH_ARDUINO_OPENCR", "ZENOH_C_STANDARD=99", "Z_FEATURE_MULTI_THREAD=0"]
 
@@ -79,7 +79,7 @@ elif FRAMEWORK == 'espidf':
                   "-<system/unix/>",
                   "-<system/flipper/>",
                   "-<system/windows/>",
-                  "-<system/threadx/>",
+                  "-<system/threadx_plus_netxduo/>",
                   "-<system/zephyr/>"]
     CPPDEFINES = ["ZENOH_ESPIDF"]
 
@@ -94,7 +94,7 @@ elif FRAMEWORK == 'mbed':
                   "-<system/unix/>",
                   "-<system/flipper/>",
                   "-<system/windows/>",
-                  "-<system/threadx/>",
+                  "-<system/threadx_plus_netxduo/>",
                   "-<system/zephyr/>"]
     CPPDEFINES = ["ZENOH_MBED", "ZENOH_C_STANDARD=99"]
 

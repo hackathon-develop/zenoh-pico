@@ -25,7 +25,8 @@
         "arduino",
         "espidf",
         "mbed",
-        "zephyr"
+        "zephyr",
+        "threadx"
     ],
     "headers": [
         "zenoh-pico.h"
@@ -35,7 +36,9 @@
     ],
     "dependencies": {
         "BluetoothSerial": "0.16.1",
-        "FreeRTOS": "1.0.0"
+        "FreeRTOS": "1.0.0",
+        "ThreadX": "6.0.0",
+        "NetXDuo": "6.0.0"
     },
     "build": {
         "extraScript": "extra_script.py"
