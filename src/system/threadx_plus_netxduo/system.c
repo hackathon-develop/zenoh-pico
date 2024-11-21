@@ -22,6 +22,10 @@
 #include "zenoh-pico/config.h"
 #include "zenoh-pico/system/platform.h"
 
+
+#include "tx_api.h"
+#include "tx_byte_pool.h"
+
 /*------------------ Random ------------------*/
 
 
@@ -81,14 +85,51 @@ void z_random_fill(void *buf, size_t len) {
 }
 
 /*------------------ Memory ------------------*/
-void *z_malloc(size_t size) { return pvPortMalloc(size); }
+// see https://embeddedartistry.com/blog/2017/02/17/implementing-malloc-with-threadx/
+
+// ThreadX internal memory pool stucture
+static TX_BYTE_POOL malloc_pool_ = {0};
+
+// this is not zenoh standard
+int z_malloc_init(uintptr_t heap_start, size_t heap_size)
+{
+    uint8_t r;
+
+    r = tx_byte_pool_create(&malloc_pool_, "BMP",
+            (void *)heap_start,
+            heap_size);
+
+    return (r == TX_SUCCESS) ? 0 : -1;  
+}
+
+void *z_malloc(size_t size) { 
+    void * ptr = NULL;
+
+    if(size > 0)
+    {
+        // TODO: is there a way to check if the byte pool is initialized/created properly
+        uint8_t r = tx_byte_allocate(&malloc_pool_, &ptr, size,
+            TX_WAIT_FOREVER);
+
+        if(r != TX_SUCCESS)
+        {
+            ptr = NULL;
+        }
+    } 
+    return ptr;
+}
 
 void *z_realloc(void *ptr, size_t size) {
-    // realloc not implemented in FreeRTOS
+    // realloc  not implemented in ThreadX with netXDuo port
     return NULL;
 }
 
-void z_free(void *ptr) { vPortFree(ptr); }
+void z_free(void *ptr) { 
+    if(ptr) {
+        uint8_t r = tx_byte_release(ptr);
+    }
+}
+
 
 #if Z_FEATURE_MULTI_THREAD == 1
 // In FreeRTOS, tasks created using xTaskCreate must end with vTaskDelete.
