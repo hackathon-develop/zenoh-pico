@@ -46,6 +46,8 @@
 #include "zenoh-pico/system/platform/flipper.h"
 #elif defined(ZENOH_FREERTOS_PLUS_TCP)
 #include "zenoh-pico/system/platform/freertos_plus_tcp.h"
+#elif defined(ZENOH_THREADX_PLUS_NETXDUO)
+#include "zenoh-pico/system/platform/threadx.h"
 #else
 #include "zenoh-pico/system/platform/void.h"
 #error "Unknown platform"

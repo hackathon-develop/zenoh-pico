@@ -112,7 +112,7 @@ elif FRAMEWORK == 'threadx':
                   "-<system/flipper/>",
                   "-<system/windows/>",
                   "-<system/zephyr/>"]
-    CPPDEFINES = ["ZENOH_THREADX", "ZENOH_C_STANDARD=99", "Z_FEATURE_MULTI_THREAD=0"]
+    CPPDEFINES = ["ZENOH_THREADX_PLUS_NETXDUO", "ZENOH_C_STANDARD=99", "Z_FEATURE_MULTI_THREAD=0"]
 
 
 env.Append(SRC_FILTER=SRC_FILTER)
