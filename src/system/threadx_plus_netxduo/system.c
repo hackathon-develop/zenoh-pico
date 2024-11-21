@@ -18,11 +18,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "FreeRTOS_IP.h"
+// #include "FreeRTOS_IP.h"
 #include "zenoh-pico/config.h"
 #include "zenoh-pico/system/platform.h"
 
-
+// TODO: Cleanup
+// TODO #include "threadx_plus_netxduo.h"
 #define Z_FEATURE_MULTI_THREAD 1
 #define Z_FEATURE_LINK_TCP 0
 #define Z_FEATURE_LINK_UDP_UNICAST 1 
