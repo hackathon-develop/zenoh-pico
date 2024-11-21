@@ -23,6 +23,12 @@
 #include "zenoh-pico/system/platform.h"
 
 
+#define Z_FEATURE_MULTI_THREAD 1
+#define Z_FEATURE_LINK_TCP 0
+#define Z_FEATURE_LINK_UDP_UNICAST 1 
+#define Z_FEATURE_LINK_UDP_MULTICAST 0
+#define configSUPPORT_STATIC_ALLOCATION 1
+#define Z_MULTI_THREAD 0
 #include "tx_api.h"
 #include "tx_byte_pool.h"
 
@@ -107,10 +113,8 @@ void *z_malloc(size_t size) {
 
     if(size > 0)
     {
-        // TODO: is there a way to check if the byte pool is initialized/created properly
-        uint8_t r = tx_byte_allocate(&malloc_pool_, &ptr, size,
-            TX_WAIT_FOREVER);
-
+        // TODO: is there a way to check if the byte pool is initialized/created properly before using it?
+        uint8_t r = tx_byte_allocate(&malloc_pool_, &ptr, size, TX_WAIT_FOREVER);   // TX_NO_WAIT better ?
         if(r != TX_SUCCESS)
         {
             ptr = NULL;
@@ -120,7 +124,7 @@ void *z_malloc(size_t size) {
 }
 
 void *z_realloc(void *ptr, size_t size) {
-    // realloc  not implemented in ThreadX with netXDuo port
+    // realloc not implemented in ThreadX with netXDuo port
     return NULL;
 }
 
@@ -130,6 +134,9 @@ void z_free(void *ptr) {
     }
 }
 
+/*------------------ Tasks / Threads setup ------------------*/
+
+//https://wiki.st.com/stm32mcu/wiki/Introduction_to_THREADX#Migration_from_FreeRTOS_to_ThreadX 
 
 #if Z_FEATURE_MULTI_THREAD == 1
 // In FreeRTOS, tasks created using xTaskCreate must end with vTaskDelete.
@@ -158,8 +165,63 @@ static z_task_attr_t z_default_task_attr = {
 #endif /* SUPPORT_STATIC_ALLOCATION */
 };
 
-/*------------------ Thread ------------------*/
+
+// from zenoh-pico/src/system/mbed/system.cpp
+/*------------------ Task ------------------*/
+/*
 z_result_t _z_task_init(_z_task_t *task, z_task_attr_t *attr, void *(*fun)(void *), void *arg) {
+    *task = new Thread();
+    mbed::Callback<void()> c = mbed::Callback<void()>(fun, arg);
+    return ((Thread *)*task)->start(c);
+}
+
+z_result_t _z_task_join(_z_task_t *task) {
+    int res = ((Thread *)*task)->join();
+    delete ((Thread *)*task);
+    return res;
+}
+
+z_result_t _z_task_detach(_z_task_t *task) {
+    // Not implemented
+    return _Z_ERR_GENERIC;
+}
+
+z_result_t _z_task_cancel(_z_task_t *task) {
+    int res = ((Thread *)*task)->terminate();
+    delete ((Thread *)*task);
+    return res;
+}
+
+void _z_task_free(_z_task_t **task) {
+    _z_task_t *ptr = *task;
+    z_free(ptr);
+    *task = NULL;
+}
+*/
+
+
+/*
+// Create a byte memory pool from which to allocate the thread stacks.
+    tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
+
+// Put system definition stuff in here, e.g. thread creates and other assorted create information.
+
+// Allocate the stack for thread 0.
+    tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
+
+// Create the main thread.
+    tx_thread_create(&thread_0, "thread 0", thread_0_entry, 0,  
+            pointer, DEMO_STACK_SIZE, 
+            1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+*/
+/*------------------ Thread ------------------*/
+z_result_t _z_task_init(
+    _z_task_t *task, 
+    z_task_attr_t *attr, 
+    void *(*fun)(void *), 
+    void *arg
+    ) 
+{
     z_task_arg *z_arg = (z_task_arg *)z_malloc(sizeof(z_task_arg));
     if (z_arg == NULL) {
         return -1;
@@ -167,7 +229,7 @@ z_result_t _z_task_init(_z_task_t *task, z_task_attr_t *attr, void *(*fun)(void 
 
     z_arg->fun = fun;
     z_arg->arg = arg;
-    z_arg->join_event = task->join_event = xEventGroupCreate();
+    z_arg->join_event = task->join_event = xEventGroupCreate(); // -> tx_event_flags_create
 
     if (attr == NULL) {
         attr = &z_default_task_attr;
@@ -193,6 +255,18 @@ z_result_t _z_task_init(_z_task_t *task, z_task_attr_t *attr, void *(*fun)(void 
     return 0;
 }
 
+// https://embeddedartistry.com/blog/2018/01/18/implementing-an-asynchronous-dispatch-queue-with-threadx/
+// threadx has no join
+// https://www.freertos.org/Documentation/02-Kernel/04-API-references/12-Event-groups-or-flags/04-xEventGroupWaitBits
+// one could use https://github.com/eclipse-threadx/rtos-docs/blob/main/rtos-docs/threadx/chapter4.md#tx_thread_entry_exit_notify 
+// to build some task ended/join info transfer. 
+// maybe build together with event flags https://github.com/eclipse-threadx/rtos-docs/blob/main/rtos-docs/threadx/chapter4.md#tx_event_flags_create
+// options:
+// - one event flag group for all threads - implicitly limited - encoding of threads to bits
+// - one event flag group per thread - no real limit - encoding of events to bits can be uniform (started / ended flags)
+// in either case the setting of start and end flags needs to be done for all tasks at spawning time with info collection and 
+// forwarding through tx_thread_entry_exit_notify for all (zenoh) tasks in the app -> not possible to build during the hackathon
+// --> Z_MULTI_THREAD = 0 for now
 z_result_t _z_task_join(_z_task_t *task) {
     xEventGroupWaitBits(task->join_event, 1, pdFALSE, pdFALSE, portMAX_DELAY);
     return 0;
@@ -203,14 +277,17 @@ z_result_t _z_task_detach(_z_task_t *task) {
     return _Z_ERR_GENERIC;
 }
 
-z_result_t _z_task_cancel(_z_task_t *task) {
-    vTaskDelete(task->handle);
+z_result_t _z_task_cancel(_z_task_t *task) {    
+    // UINT tx_thread_terminate(TX_THREAD *thread_ptr);
+    tx_thread_terminate((TX_THREAD *)(task->handle));
+    // was vTaskDelete(task->handle);
     return 0;
 }
 
 void _z_task_free(_z_task_t **task) {
-    z_free((*task)->join_event);
+    // z_free((*task)->join_event);    // reactivate if we use events 
     z_free(*task);
+    *task = NULL;
 }
 
 /*------------------ Mutex ------------------*/
