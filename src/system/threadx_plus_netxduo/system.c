@@ -23,6 +23,39 @@
 #include "zenoh-pico/system/platform.h"
 
 /*------------------ Random ------------------*/
+
+
+// from FreeRTOS/FreeRTOS-Plus-TCP/source/include/FreeRTOS_IP.h
+/* This xApplicationGetRandomNumber() will set *pulNumber to a random number,
+ * and return pdTRUE. When the random number generator is broken, it shall return
+ * pdFALSE.
+ * The function is defined in 'iot_secure_sockets.c'.
+ * If that module is not included in the project, the application must provide an
+ * implementation of it.
+ * The macro's ipconfigRAND32() and configRAND32() are not in use anymore. */
+
+/* "xApplicationGetRandomNumber" is declared but never defined, because it may
+ * be defined in a user module. */
+// BaseType_t xApplicationGetRandomNumber( uint32_t * pulNumber );
+
+// from FreeRTOS/FreeRTOS-Plus-TCP/test/build-combination/Common/main.c , types modified
+uint32_t uxRand( void )
+{
+    const uint32_t ulMultiplier = 0x015a4e35UL, ulIncrement = 1UL;
+
+    /* Utility function to generate a pseudo random number. */
+
+    ulNextRand = ( ulMultiplier * ulNextRand ) + ulIncrement;
+    return( ( int ) ( ulNextRand ) & 0x7fffUL );
+}
+
+void xApplicationGetRandomNumber( uint32_t * pulNumber )
+{
+    *pulNumber = ( uint32_t ) uxRand();
+
+    return pdTRUE;
+}
+
 uint8_t z_random_u8(void) { return z_random_u32(); }
 
 uint16_t z_random_u16(void) { return z_random_u32(); }
