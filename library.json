@@ -26,7 +26,6 @@
         "espidf",
         "mbed",
         "zephyr",
-        "freertos",
         "threadx"
     ],
     "headers": [

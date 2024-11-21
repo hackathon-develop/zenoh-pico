@@ -47,7 +47,7 @@
 #elif defined(ZENOH_FREERTOS_PLUS_TCP)
 #include "zenoh-pico/system/platform/freertos_plus_tcp.h"
 #elif defined(ZENOH_THREADX_PLUS_NETXDUO)
-#include "zenoh-pico/system/platform/threadx.h"
+#include "zenoh-pico/system/platform/threadx_plus_netxduo.h"
 #else
 #include "zenoh-pico/system/platform/void.h"
 #error "Unknown platform"
